@@ -1,0 +1,13 @@
+@model List<CategoryItem>
+<ul class="dropdown-menu">
+    <li><a class="dropdown-item fw-semibold" asp-controller="Books" asp-action="Index">Tất cả sách</a></li>
+    <li><hr class="dropdown-divider" /></li>
+    @foreach (var c in Model)
+    {
+        <li>
+            <a class="dropdown-item d-flex justify-content-between" asp-controller="Books" asp-action="Index" asp-route-categoryId="@c.Id">
+                <span>@c.Name</span><span class="text-muted small ms-3">@c.BookCount</span>
+            </a>
+        </li>
+    }
+</ul>

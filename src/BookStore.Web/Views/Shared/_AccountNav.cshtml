@@ -1,0 +1,9 @@
+@{
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+}
+<div class="list-group account-nav">
+    <a class="list-group-item list-group-item-action @(action == "Profile" ? "active" : "")" asp-controller="Account" asp-action="Profile"><i class="bi bi-person"></i> Thông tin tài khoản</a>
+    <a class="list-group-item list-group-item-action @(controller == "Orders" ? "active" : "")" asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i> Đơn hàng của tôi</a>
+    <a class="list-group-item list-group-item-action @(action is "Addresses" or "AddressForm" ? "active" : "")" asp-controller="Account" asp-action="Addresses"><i class="bi bi-geo-alt"></i> Sổ địa chỉ</a>
+</div>

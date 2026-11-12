@@ -1,0 +1,95 @@
+@model HomeViewModel
+@{
+    ViewData["Title"] = "Trang chủ";
+    var icons = new Dictionary<string, string>
+    {
+        ["Văn học"] = "bi-feather", ["Kinh tế"] = "bi-graph-up-arrow", ["Kỹ năng sống"] = "bi-lightbulb",
+        ["Công nghệ thông tin"] = "bi-code-slash", ["Ngoại ngữ"] = "bi-translate", ["Thiếu nhi"] = "bi-balloon"
+    };
+}
+
+<section class="container mt-4">
+    <div id="heroCarousel" class="carousel slide hero" data-bs-ride="carousel">
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-label="Slide 1"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+        </div>
+        <div class="carousel-inner">
+            <div class="carousel-item active hero-slide hero-1">
+                <div class="hero-text">
+                    <span class="hero-kicker">Tuần lễ sách hay</span>
+                    <h1>Giảm 10% cho mọi đơn từ 150.000 ₫</h1>
+                    <p>Nhập mã <strong>GIAM10</strong> khi thanh toán – giảm tối đa 50.000 ₫.</p>
+                    <a class="btn btn-light btn-lg" asp-controller="Books" asp-action="Index">Mua ngay</a>
+                </div>
+                <i class="bi bi-book hero-icon"></i>
+            </div>
+            <div class="carousel-item hero-slide hero-2">
+                <div class="hero-text">
+                    <span class="hero-kicker">Dành cho lập trình viên</span>
+                    <h1>Tủ sách Công nghệ thông tin</h1>
+                    <p>Clean Code, Design Patterns, Refactoring… những cuốn sách nên có trên bàn làm việc.</p>
+                    <a class="btn btn-light btn-lg" asp-controller="Books" asp-action="Index" asp-route-q="Clean Code">Khám phá</a>
+                </div>
+                <i class="bi bi-code-square hero-icon"></i>
+            </div>
+            <div class="carousel-item hero-slide hero-3">
+                <div class="hero-text">
+                    <span class="hero-kicker">Giao hàng toàn quốc</span>
+                    <h1>Miễn phí vận chuyển đơn từ 300.000 ₫</h1>
+                    <p>Thanh toán khi nhận hàng hoặc chuyển khoản – theo dõi đơn hàng mọi lúc.</p>
+                    <a class="btn btn-light btn-lg" asp-controller="Books" asp-action="Index" asp-route-sort="BestSelling">Xem sách bán chạy</a>
+                </div>
+                <i class="bi bi-truck hero-icon"></i>
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev" aria-label="Trước">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next" aria-label="Sau">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    </div>
+</section>
+
+<section class="container mt-5">
+    <h2 class="section-title">Danh mục sách</h2>
+    <div class="row g-3">
+        @foreach (var c in Model.Categories)
+        {
+            <div class="col-6 col-md-4 col-lg-2">
+                <a class="category-tile" asp-controller="Books" asp-action="Index" asp-route-categoryId="@c.Id">
+                    <i class="bi @(icons.GetValueOrDefault(c.Name, "bi-bookmark"))"></i>
+                    <span class="name">@c.Name</span>
+                    <span class="count">@c.BookCount đầu sách</span>
+                </a>
+            </div>
+        }
+    </div>
+</section>
+
+@{
+    var sections = new[]
+    {
+        ("Sách nổi bật", "bi-stars", Model.Featured, "Newest"),
+        ("Sách bán chạy", "bi-fire", Model.BestSellers, "BestSelling"),
+        ("Sách mới", "bi-clock-history", Model.Newest, "Newest")
+    };
+}
+@foreach (var (title, icon, books, sort) in sections)
+{
+    if (books.Count == 0) continue;
+    <section class="container mt-5">
+        <div class="d-flex justify-content-between align-items-end mb-3">
+            <h2 class="section-title mb-0"><i class="bi @icon"></i> @title</h2>
+            <a class="small fw-semibold" asp-controller="Books" asp-action="Index" asp-route-sort="@sort">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="row g-3">
+            @foreach (var b in books)
+            {
+                <div class="col-6 col-md-4 col-lg-3"><partial name="_BookCard" model="b" /></div>
+            }
+        </div>
+    </section>
+}

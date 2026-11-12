@@ -1,0 +1,85 @@
+@model CartDto
+@{
+    ViewData["Title"] = "Giỏ hàng";
+    var shipping = Model.Lines.Count == 0 ? 0 : BookStore.Business.Common.ShippingPolicy.FeeFor(Model.Subtotal);
+    var remainForFree = BookStore.Business.Common.ShippingPolicy.FreeShippingThreshold - Model.Subtotal;
+}
+<div class="container mt-4">
+    <h1 class="h4 mb-3">Giỏ hàng <span class="text-muted fs-6">(@Model.TotalQuantity sản phẩm)</span></h1>
+
+    @if (Model.Lines.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="bi bi-bag"></i>
+            <h5>Giỏ hàng của bạn đang trống</h5>
+            <p class="text-muted">Hãy chọn những cuốn sách bạn yêu thích nhé.</p>
+            <a class="btn btn-primary" asp-controller="Books" asp-action="Index">Tiếp tục mua sắm</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card-surface">
+                    @foreach (var line in Model.Lines)
+                    {
+                        <div class="cart-line @(line.IsAvailable ? "" : "opacity-75")">
+                            <a asp-controller="Books" asp-action="Details" asp-route-id="@line.BookId" class="cart-thumb">
+                                <img src="@Url.Action("Cover", "Books", new { id = line.BookId })" alt="@line.Title" />
+                            </a>
+                            <div class="flex-grow-1">
+                                <a class="fw-semibold" asp-controller="Books" asp-action="Details" asp-route-id="@line.BookId">@line.Title</a>
+                                <div class="small text-muted">@line.Authors</div>
+                                <div class="price small">@Format.Money(line.Price)</div>
+                                @if (line.Warning != null)
+                                {
+                                    <div class="small text-danger"><i class="bi bi-exclamation-triangle"></i> @line.Warning</div>
+                                }
+                            </div>
+                            <form asp-action="Update" method="post" class="qty-input qty-sm">
+                                <input type="hidden" name="bookId" value="@line.BookId" />
+                                <button type="button" class="btn btn-outline-secondary" data-step="-1" data-autosubmit aria-label="Giảm">−</button>
+                                <input type="number" name="quantity" value="@line.Quantity" min="0" max="@Math.Max(line.Stock, 1)" class="form-control text-center" onchange="this.form.submit()" aria-label="Số lượng" />
+                                <button type="button" class="btn btn-outline-secondary" data-step="1" data-autosubmit aria-label="Tăng">+</button>
+                            </form>
+                            <div class="text-end cart-total">
+                                <div class="fw-semibold">@Format.Money(line.LineTotal)</div>
+                                <form asp-action="Remove" method="post">
+                                    <input type="hidden" name="bookId" value="@line.BookId" />
+                                    <button class="btn btn-link btn-sm text-danger p-0">Xóa</button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <a class="btn btn-link mt-2 ps-0" asp-controller="Books" asp-action="Index"><i class="bi bi-arrow-left"></i> Tiếp tục mua sắm</a>
+            </div>
+            <div class="col-lg-4">
+                <div class="card-surface p-4 summary-card">
+                    <h2 class="h6">Tóm tắt đơn hàng</h2>
+                    <div class="d-flex justify-content-between"><span>Tạm tính</span><span>@Format.Money(Model.Subtotal)</span></div>
+                    <div class="d-flex justify-content-between"><span>Phí vận chuyển</span><span>@(shipping == 0 ? "Miễn phí" : Format.Money(shipping))</span></div>
+                    @if (remainForFree > 0)
+                    {
+                        <div class="small text-muted mt-1">Mua thêm @Format.Money(remainForFree) để được miễn phí vận chuyển.</div>
+                    }
+                    <hr />
+                    <div class="d-flex justify-content-between fw-bold fs-5"><span>Tổng cộng</span><span class="price">@Format.Money(Model.Subtotal + shipping)</span></div>
+                    <div class="small text-muted mb-3">Mã giảm giá được áp dụng ở bước thanh toán.</div>
+                    @if (Model.CanCheckout)
+                    {
+                        <a class="btn btn-primary btn-lg w-100" asp-controller="Checkout" asp-action="Index">Tiến hành đặt hàng</a>
+                        @if (User.Identity?.IsAuthenticated != true)
+                        {
+                            <div class="small text-muted mt-2 text-center">Bạn cần đăng nhập để đặt hàng. Giỏ hàng sẽ được giữ lại.</div>
+                        }
+                    }
+                    else
+                    {
+                        <button class="btn btn-secondary btn-lg w-100" disabled>Vui lòng cập nhật giỏ hàng</button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>

@@ -1,0 +1,111 @@
+@model CheckoutViewModel
+@{
+    ViewData["Title"] = "Thanh toán";
+}
+<div class="container mt-4">
+    <h1 class="h4 mb-3">Thanh toán</h1>
+    <form asp-action="Index" method="post" id="checkoutForm">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="row g-4">
+            <div class="col-lg-7">
+                @* ---------------- Địa chỉ giao hàng ---------------- *@
+                <div class="card-surface p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h6 mb-0"><i class="bi bi-geo-alt"></i> Địa chỉ nhận hàng</h2>
+                        <a class="small" asp-controller="Account" asp-action="AddressForm" asp-route-returnUrl="/Checkout">+ Thêm địa chỉ vào sổ</a>
+                    </div>
+                    @foreach (var a in Model.Addresses)
+                    {
+                        <label class="choice-card">
+                            <input type="radio" name="AddressId" value="@a.Id" @(Model.AddressId == a.Id ? "checked" : "") />
+                            <span>
+                                <strong>@a.ReceiverName</strong> | @a.Phone
+                                @if (a.IsDefault) { <span class="badge text-bg-primary ms-1">Mặc định</span> }
+                                <br /><span class="small text-muted">@a.FullAddress</span>
+                            </span>
+                        </label>
+                    }
+                    <label class="choice-card">
+                        <input type="radio" name="AddressId" value="0" @(Model.AddressId == 0 ? "checked" : "") />
+                        <span><strong>Giao đến địa chỉ khác</strong></span>
+                    </label>
+                    <div id="otherAddress" class="row g-2 mt-1 @(Model.AddressId == 0 ? "" : "d-none")">
+                        <div class="col-md-6"><input class="form-control" name="ReceiverName" value="@Model.ReceiverName" placeholder="Họ tên người nhận" aria-label="Họ tên người nhận" /></div>
+                        <div class="col-md-6"><input class="form-control" name="ReceiverPhone" value="@Model.ReceiverPhone" placeholder="Số điện thoại" type="tel" aria-label="Số điện thoại" /></div>
+                        <div class="col-12"><input class="form-control" name="ShippingAddress" value="@Model.ShippingAddress" placeholder="Địa chỉ đầy đủ: số nhà, đường, phường, quận, tỉnh/thành" aria-label="Địa chỉ" /></div>
+                    </div>
+                    <textarea class="form-control mt-3" name="Note" rows="2" maxlength="500" placeholder="Ghi chú cho đơn hàng (không bắt buộc)" aria-label="Ghi chú">@Model.Note</textarea>
+                </div>
+
+                @* ---------------- Phương thức thanh toán ---------------- *@
+                <div class="card-surface p-4">
+                    <h2 class="h6"><i class="bi bi-credit-card"></i> Phương thức thanh toán</h2>
+                    <label class="choice-card">
+                        <input type="radio" name="PaymentMethod" value="COD" @(Model.PaymentMethod == PaymentMethod.COD ? "checked" : "") />
+                        <span><strong>Thanh toán khi nhận hàng (COD)</strong><br /><span class="small text-muted">Trả tiền mặt cho nhân viên giao hàng.</span></span>
+                    </label>
+                    <label class="choice-card">
+                        <input type="radio" name="PaymentMethod" value="BankTransfer" @(Model.PaymentMethod == PaymentMethod.BankTransfer ? "checked" : "") />
+                        <span><strong>Chuyển khoản ngân hàng</strong><br /><span class="small text-muted">Thông tin chuyển khoản hiển thị sau khi đặt hàng. Đơn được giao sau khi cửa hàng xác nhận đã nhận tiền.</span></span>
+                    </label>
+                </div>
+            </div>
+
+            @* ---------------- Tóm tắt ---------------- *@
+            <div class="col-lg-5">
+                <div class="card-surface p-4 summary-card">
+                    <h2 class="h6">Đơn hàng (@Model.Cart.TotalQuantity sản phẩm)</h2>
+                    @foreach (var l in Model.Cart.Lines)
+                    {
+                        <div class="d-flex justify-content-between small py-1 border-bottom">
+                            <span class="me-2">@l.Title <span class="text-muted">× @l.Quantity</span>
+                                @if (l.Warning != null) { <br /><span class="text-danger">@l.Warning</span> }
+                            </span>
+                            <span class="text-nowrap">@Format.Money(l.LineTotal)</span>
+                        </div>
+                    }
+
+                    <div class="input-group mt-3">
+                        <input class="form-control text-uppercase" name="CouponCode" value="@Model.CouponCode" placeholder="Mã giảm giá" aria-label="Mã giảm giá" />
+                        <button class="btn btn-outline-primary" name="command" value="apply" formnovalidate>Áp dụng</button>
+                    </div>
+                    @if (Model.CouponMessage != null)
+                    {
+                        <div class="small mt-1 @(Model.CouponValid ? "text-success" : "text-danger")">@Model.CouponMessage</div>
+                    }
+
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between"><span>Tạm tính</span><span>@Format.Money(Model.Cart.Subtotal)</span></div>
+                        @if (Model.Discount > 0)
+                        {
+                            <div class="d-flex justify-content-between text-success"><span>Giảm giá</span><span>−@Format.Money(Model.Discount)</span></div>
+                        }
+                        <div class="d-flex justify-content-between"><span>Phí vận chuyển</span><span>@(Model.ShippingFee == 0 ? "Miễn phí" : Format.Money(Model.ShippingFee))</span></div>
+                        <hr />
+                        <div class="d-flex justify-content-between fw-bold fs-5"><span>Tổng thanh toán</span><span class="price">@Format.Money(Model.Total)</span></div>
+                    </div>
+                    <button class="btn btn-primary btn-lg w-100 mt-3" name="command" value="place" id="placeOrderBtn" @(Model.Cart.CanCheckout ? "" : "disabled")>
+                        <i class="bi bi-check2-circle"></i> Xác nhận đặt hàng
+                    </button>
+                    <a class="btn btn-link w-100" asp-controller="Cart" asp-action="Index">Quay lại giỏ hàng</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        // Hiện ô nhập địa chỉ khác khi chọn "Giao đến địa chỉ khác"
+        document.querySelectorAll('input[name="AddressId"]').forEach(r => r.addEventListener('change', () => {
+            document.getElementById('otherAddress').classList.toggle('d-none', r.value !== '0' || !r.checked);
+        }));
+        // Chống bấm đặt hàng hai lần (phía máy chủ vẫn kiểm tra tồn kho trong transaction)
+        document.getElementById('checkoutForm').addEventListener('submit', e => {
+            if (e.submitter && e.submitter.value === 'place') {
+                const btn = document.getElementById('placeOrderBtn');
+                setTimeout(() => { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...'; }, 0);
+            }
+        });
+    </script>
+}

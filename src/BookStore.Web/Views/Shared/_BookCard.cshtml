@@ -1,0 +1,36 @@
+@model BookListItem
+<div class="book-card h-100">
+    <a asp-controller="Books" asp-action="Details" asp-route-id="@Model.Id" class="book-cover">
+        <img src="@Url.Action("Cover", "Books", new { id = Model.Id })" alt="Bìa sách @Model.Title" loading="lazy" />
+        @if (Model.Stock == 0)
+        {
+            <span class="badge-corner bg-secondary">Hết hàng</span>
+        }
+        else if (Model.IsFeatured)
+        {
+            <span class="badge-corner">Nổi bật</span>
+        }
+    </a>
+    <div class="book-body">
+        <a asp-controller="Books" asp-action="Details" asp-route-id="@Model.Id" class="book-title" title="@Model.Title">@Model.Title</a>
+        <div class="book-author">@Model.Authors</div>
+        <div class="d-flex align-items-center gap-2 small text-muted mb-1">
+            @if (Model.AverageRating != null)
+            {
+                <span class="text-warning"><i class="bi bi-star-fill"></i></span><span>@Model.AverageRating</span><span>·</span>
+            }
+            <span>Đã bán @Model.SoldQuantity</span>
+        </div>
+        <div class="d-flex align-items-center justify-content-between mt-auto">
+            <span class="price">@Format.Money(Model.Price)</span>
+            @if (Model.Stock > 0)
+            {
+                <form asp-controller="Cart" asp-action="Add" method="post">
+                    <input type="hidden" name="bookId" value="@Model.Id" />
+                    <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                    <button class="btn btn-sm btn-outline-primary btn-icon" title="Thêm vào giỏ" aria-label="Thêm vào giỏ"><i class="bi bi-bag-plus"></i></button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

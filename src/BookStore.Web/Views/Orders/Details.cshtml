@@ -1,0 +1,159 @@
+@model OrderDetailViewModel
+@{
+    var o = Model.Order;
+    ViewData["Title"] = $"Đơn hàng #{o.Id}";
+    var steps = new[] { OrderStatus.Pending, OrderStatus.Confirmed, OrderStatus.Shipping, OrderStatus.Completed };
+    int currentStep = Array.IndexOf(steps, o.Status);
+    bool needTransfer = o.PaymentMethod == PaymentMethod.BankTransfer && o.PaymentStatus != PaymentStatus.Paid && o.Status != OrderStatus.Cancelled;
+}
+<div class="container mt-4">
+    <div class="row g-4">
+        <div class="col-lg-3 d-none d-lg-block"><partial name="_AccountNav" /></div>
+        <div class="col-lg-9">
+            @if (ViewBag.JustPlaced == true)
+            {
+                <div class="alert alert-success d-flex gap-3 align-items-center">
+                    <i class="bi bi-check-circle-fill fs-3"></i>
+                    <div><strong>Đặt hàng thành công!</strong> Cửa hàng sẽ xác nhận đơn của bạn trong thời gian sớm nhất. Trạng thái đơn được cập nhật tự động trên trang này.</div>
+                </div>
+            }
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <a asp-action="Index" class="small"><i class="bi bi-arrow-left"></i> Đơn hàng của tôi</a>
+                    <h1 class="h4 mb-0">Đơn hàng #@o.Id</h1>
+                    <span class="small text-muted">Đặt lúc @Format.Date(o.OrderDate)</span>
+                </div>
+                <span class="status-badge status-@o.Status.ToString().ToLower() fs-6" id="statusBadge">@o.Status.ToVietnamese()</span>
+            </div>
+
+            @* ---------------- Tiến trình đơn hàng ---------------- *@
+            <div class="card-surface p-4 mb-4">
+                @if (o.Status == OrderStatus.Cancelled)
+                {
+                    <div class="text-danger"><i class="bi bi-x-octagon"></i> Đơn hàng đã bị hủy. Lý do: <strong>@o.CancelReason</strong></div>
+                }
+                else
+                {
+                    <ol class="order-steps">
+                        @for (int i = 0; i < steps.Length; i++)
+                        {
+                            <li class="@(i < currentStep ? "done" : i == currentStep ? "current" : "")">
+                                <span class="dot">@(i < currentStep ? "✓" : (i + 1).ToString())</span>
+                                <span class="label">@steps[i].ToVietnamese()</span>
+                            </li>
+                        }
+                    </ol>
+                    @if (o.CompletedAt != null)
+                    {
+                        <div class="small text-muted text-center mt-2">Giao thành công lúc @Format.Date(o.CompletedAt.Value)</div>
+                    }
+                }
+            </div>
+
+            @if (needTransfer)
+            {
+                <div class="alert alert-warning">
+                    <h2 class="h6"><i class="bi bi-bank"></i> Thông tin chuyển khoản</h2>
+                    Ngân hàng <strong>Vietcombank</strong> – Số tài khoản <strong>0123 456 789</strong> – Chủ tài khoản <strong>CÔNG TY BOOKSTORE</strong><br />
+                    Số tiền: <strong>@Format.Money(o.Total)</strong> – Nội dung: <strong>BOOKSTORE @o.Id</strong><br />
+                    <span class="small">Đơn hàng được giao sau khi cửa hàng xác nhận đã nhận tiền.</span>
+                </div>
+            }
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card-surface p-4 h-100">
+                        <h2 class="h6"><i class="bi bi-geo-alt"></i> Người nhận</h2>
+                        <div class="fw-semibold">@o.ReceiverName</div>
+                        <div>@o.ReceiverPhone</div>
+                        <div class="text-muted small">@o.ShippingAddress</div>
+                        @if (!string.IsNullOrEmpty(o.Note))
+                        {
+                            <div class="small mt-2"><i class="bi bi-chat-left-text"></i> @o.Note</div>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card-surface p-4 h-100">
+                        <h2 class="h6"><i class="bi bi-credit-card"></i> Thanh toán</h2>
+                        <div>@o.PaymentMethod.ToVietnamese()</div>
+                        <div class="small">Trạng thái: <strong>@o.PaymentStatus.ToVietnamese()</strong></div>
+                        @if (o.CouponCode != null)
+                        {
+                            <div class="small">Mã giảm giá: <code>@o.CouponCode</code></div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-surface mt-4">
+                @foreach (var l in o.Lines)
+                {
+                    <div class="cart-line">
+                        <a asp-controller="Books" asp-action="Details" asp-route-id="@l.BookId" class="cart-thumb">
+                            <img src="@Url.Action("Cover", "Books", new { id = l.BookId })" alt="@l.Title" />
+                        </a>
+                        <div class="flex-grow-1">
+                            <a class="fw-semibold" asp-controller="Books" asp-action="Details" asp-route-id="@l.BookId">@l.Title</a>
+                            <div class="small text-muted">@Format.Money(l.UnitPrice) × @l.Quantity</div>
+                            @if (o.Status == OrderStatus.Completed)
+                            {
+                                <a class="small" href="@Url.Action("Details", "Books", new { id = l.BookId })#reviews">
+                                    <i class="bi bi-star"></i> @(Model.ReviewedBookIds.Contains(l.BookId) ? "Sửa đánh giá" : "Viết đánh giá")
+                                </a>
+                            }
+                        </div>
+                        <div class="fw-semibold">@Format.Money(l.LineTotal)</div>
+                    </div>
+                }
+                <div class="p-4 summary-card">
+                    <div class="d-flex justify-content-between"><span>Tạm tính</span><span>@Format.Money(o.Subtotal)</span></div>
+                    @if (o.DiscountAmount > 0)
+                    {
+                        <div class="d-flex justify-content-between text-success"><span>Giảm giá</span><span>−@Format.Money(o.DiscountAmount)</span></div>
+                    }
+                    <div class="d-flex justify-content-between"><span>Phí vận chuyển</span><span>@(o.ShippingFee == 0 ? "Miễn phí" : Format.Money(o.ShippingFee))</span></div>
+                    <hr />
+                    <div class="d-flex justify-content-between fw-bold fs-5"><span>Tổng thanh toán</span><span class="price">@Format.Money(o.Total)</span></div>
+                </div>
+            </div>
+
+            @if (OrderStatusRules.CustomerCanCancel(o.Status))
+            {
+                <form asp-action="Cancel" asp-route-id="@o.Id" method="post" class="card-surface p-4 mt-4"
+                      onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng #@o.Id?');">
+                    <h2 class="h6">Hủy đơn hàng</h2>
+                    <p class="small text-muted">Bạn có thể tự hủy khi đơn còn ở trạng thái "Chờ xác nhận".</p>
+                    <div class="input-group">
+                        <select class="form-select" name="reason" aria-label="Lý do hủy">
+                            <option>Tôi muốn thay đổi sản phẩm trong đơn</option>
+                            <option>Tôi muốn thay đổi địa chỉ giao hàng</option>
+                            <option>Tôi tìm được giá tốt hơn</option>
+                            <option>Không còn nhu cầu mua</option>
+                        </select>
+                        <button class="btn btn-outline-danger">Hủy đơn</button>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @if (o.Status is not (OrderStatus.Completed or OrderStatus.Cancelled))
+    {
+        <script>
+            // Tự làm mới khi nhân viên cập nhật trạng thái đơn trên ứng dụng Desktop (dùng chung CSDL)
+            const initial = { status: '@o.Status', payment: '@o.PaymentStatus' };
+            setInterval(async () => {
+                try {
+                    const res = await fetch('@Url.Action("Status", new { id = o.Id })', { headers: { 'Accept': 'application/json' } });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data.status !== initial.status || data.payment !== initial.payment) location.reload();
+                } catch { /* bỏ qua lỗi mạng tạm thời */ }
+            }, 10000);
+        </script>
+    }
+}

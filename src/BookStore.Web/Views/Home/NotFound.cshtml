@@ -1,0 +1,11 @@
+@model int
+@{
+    ViewData["Title"] = "Không tìm thấy trang";
+}
+<div class="container py-5 text-center">
+    <div class="display-1 fw-bold text-primary">@Model</div>
+    <h1 class="h3">Không tìm thấy trang bạn yêu cầu</h1>
+    <p class="text-muted">Trang có thể đã bị xóa hoặc đường dẫn không chính xác.</p>
+    <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Về trang chủ</a>
+    <a class="btn btn-outline-primary" asp-controller="Books" asp-action="Index">Xem sách</a>
+</div>

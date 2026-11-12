@@ -1,0 +1,48 @@
+@model List<OrderListItem>
+@{
+    ViewData["Title"] = "Đơn hàng của tôi";
+    var current = (OrderStatus?)ViewBag.Status;
+    var counts = (Dictionary<OrderStatus, int>)ViewBag.Counts;
+}
+<div class="container mt-4">
+    <div class="row g-4">
+        <div class="col-lg-3"><partial name="_AccountNav" /></div>
+        <div class="col-lg-9">
+            <h1 class="h5 mb-3">Đơn hàng của tôi</h1>
+            <ul class="nav nav-pills status-tabs mb-3 flex-nowrap overflow-auto">
+                <li class="nav-item"><a class="nav-link @(current == null ? "active" : "")" asp-action="Index">Tất cả</a></li>
+                @foreach (var s in Enum.GetValues<OrderStatus>())
+                {
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap @(current == s ? "active" : "")" asp-action="Index" asp-route-status="@s">
+                            @s.ToVietnamese() @if (counts.GetValueOrDefault(s) > 0) { <span class="badge text-bg-light">@counts[s]</span> }
+                        </a>
+                    </li>
+                }
+            </ul>
+
+            @if (Model.Count == 0)
+            {
+                <div class="empty-state">
+                    <i class="bi bi-receipt"></i>
+                    <h5>Chưa có đơn hàng nào</h5>
+                    <a class="btn btn-primary" asp-controller="Books" asp-action="Index">Mua sắm ngay</a>
+                </div>
+            }
+            @foreach (var o in Model)
+            {
+                <a class="order-row card-surface" asp-action="Details" asp-route-id="@o.Id">
+                    <div>
+                        <div class="fw-semibold">Đơn #@o.Id</div>
+                        <div class="small text-muted">@Format.Date(o.OrderDate) · @o.ItemCount sản phẩm</div>
+                    </div>
+                    <span class="status-badge status-@o.Status.ToString().ToLower()">@o.StatusText</span>
+                    <div class="text-end">
+                        <div class="price">@Format.Money(o.Total)</div>
+                        <div class="small text-muted">@o.PaymentMethod.ToVietnamese()</div>
+                    </div>
+                </a>
+            }
+        </div>
+    </div>
+</div>

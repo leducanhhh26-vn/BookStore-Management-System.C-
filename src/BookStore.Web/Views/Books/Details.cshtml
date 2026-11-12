@@ -1,0 +1,192 @@
+@model BookDetailViewModel
+@{
+    var b = Model.Book;
+    ViewData["Title"] = b.Title;
+    int maxCanAdd = Math.Max(0, b.Stock - Model.InCart);
+}
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index" asp-route-categoryId="@b.CategoryId">@b.CategoryName</a></li>
+            <li class="breadcrumb-item active">@b.Title</li>
+        </ol>
+    </nav>
+
+    <div class="card-surface p-3 p-md-4">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="detail-cover"><img src="@Url.Action("Cover", new { id = b.Id })" alt="Bìa sách @b.Title" /></div>
+            </div>
+            <div class="col-md-8">
+                <h1 class="detail-title">@b.Title</h1>
+                <div class="text-muted mb-2">
+                    Tác giả:
+                    @for (int i = 0; i < b.AuthorList.Count; i++)
+                    {
+                        <a asp-action="Index" asp-route-authorId="@b.AuthorList[i].Id">@b.AuthorList[i].Name</a>@(i < b.AuthorList.Count - 1 ? ", " : "")
+                    }
+                    · NXB: <a asp-action="Index" asp-route-publisherId="@b.PublisherId">@b.PublisherName</a>
+                </div>
+                <div class="d-flex align-items-center gap-3 small mb-3">
+                    @if (b.AverageRating != null)
+                    {
+                        <span class="text-warning">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <i class="bi @(i <= Math.Round(b.AverageRating.Value) ? "bi-star-fill" : "bi-star")"></i>
+                            }
+                        </span>
+                        <a href="#reviews">@b.AverageRating/5 (@b.Reviews.Count đánh giá)</a>
+                    }
+                    else
+                    {
+                        <span class="text-muted">Chưa có đánh giá</span>
+                    }
+                    <span class="text-muted">| Đã bán @b.SoldQuantity</span>
+                </div>
+
+                <div class="detail-price">@Format.Money(b.Price)</div>
+
+                <div class="mb-3">
+                    @if (b.Stock == 0)
+                    {
+                        <span class="badge text-bg-secondary"><i class="bi bi-x-circle"></i> Hết hàng</span>
+                    }
+                    else if (b.IsLowStock)
+                    {
+                        <span class="badge text-bg-warning"><i class="bi bi-exclamation-circle"></i> Chỉ còn @b.Stock cuốn</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-success"><i class="bi bi-check-circle"></i> Còn hàng (@b.Stock cuốn)</span>
+                    }
+                    @if (Model.InCart > 0)
+                    {
+                        <span class="badge text-bg-light border ms-1">Đã có @Model.InCart cuốn trong giỏ</span>
+                    }
+                </div>
+
+                @if (maxCanAdd > 0)
+                {
+                    <form asp-controller="Cart" asp-action="Add" method="post" class="d-flex flex-wrap gap-2 align-items-center mb-4">
+                        <input type="hidden" name="bookId" value="@b.Id" />
+                        <input type="hidden" name="returnUrl" value="@Url.Action("Details", new { id = b.Id })" />
+                        <div class="qty-input">
+                            <button type="button" class="btn btn-outline-secondary" data-step="-1" aria-label="Giảm">−</button>
+                            <input type="number" name="quantity" value="1" min="1" max="@maxCanAdd" class="form-control text-center" aria-label="Số lượng" />
+                            <button type="button" class="btn btn-outline-secondary" data-step="1" aria-label="Tăng">+</button>
+                        </div>
+                        <button class="btn btn-outline-primary btn-lg"><i class="bi bi-bag-plus"></i> Thêm vào giỏ</button>
+                        <button class="btn btn-primary btn-lg" name="buyNow" value="true"><i class="bi bi-lightning"></i> Mua ngay</button>
+                    </form>
+                }
+                else if (b.Stock > 0)
+                {
+                    <div class="alert alert-info">Bạn đã thêm toàn bộ số lượng còn lại vào giỏ. <a asp-controller="Cart" asp-action="Index">Xem giỏ hàng</a></div>
+                }
+
+                <table class="table table-sm spec-table">
+                    <tbody>
+                        <tr><th>Mã ISBN</th><td>@b.Isbn</td></tr>
+                        <tr><th>Thể loại</th><td>@b.CategoryName</td></tr>
+                        <tr><th>Nhà xuất bản</th><td>@b.PublisherName</td></tr>
+                        <tr><th>Năm xuất bản</th><td>@b.PublishYear</td></tr>
+                        <tr><th>Số trang</th><td>@b.Pages</td></tr>
+                        <tr><th>Hình thức</th><td>@b.CoverType</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-1">
+        <div class="col-lg-8">
+            <div class="card-surface p-4 h-100">
+                <h2 class="h5">Giới thiệu sách</h2>
+                <p class="mb-0" style="white-space: pre-line">@(b.Description ?? "Chưa có mô tả cho đầu sách này.")</p>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card-surface p-4 h-100 small">
+                <h2 class="h6"><i class="bi bi-shield-check text-success"></i> Cam kết của BookStore</h2>
+                <ul class="mb-0 ps-3">
+                    <li>Sách chính hãng từ các nhà xuất bản</li>
+                    <li>Miễn phí giao hàng đơn từ 300.000 ₫</li>
+                    <li>Đổi trả trong 7 ngày nếu lỗi in ấn</li>
+                    <li>Thanh toán khi nhận hàng</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    @* ---------------- Đánh giá ---------------- *@
+    <div class="card-surface p-4 mt-4" id="reviews">
+        <h2 class="h5">Đánh giá từ độc giả (@b.Reviews.Count)</h2>
+
+        @if (Model.CanReview)
+        {
+            <form asp-controller="Reviews" asp-action="Save" method="post" class="review-form my-3">
+                <input type="hidden" name="bookId" value="@b.Id" />
+                <div class="mb-2">
+                    <span class="me-2">@(Model.MyReview == null ? "Đánh giá của bạn:" : "Cập nhật đánh giá của bạn:")</span>
+                    <span class="star-input">
+                        @for (int i = 5; i >= 1; i--)
+                        {
+                            <input type="radio" id="star@(i)" name="rating" value="@i" @(Model.MyReview?.Rating == i ? "checked" : "") required />
+                            <label for="star@(i)" title="@i sao"><i class="bi bi-star-fill"></i></label>
+                        }
+                    </span>
+                </div>
+                <textarea class="form-control mb-2" name="comment" rows="2" maxlength="1000" placeholder="Chia sẻ cảm nhận của bạn về cuốn sách...">@Model.MyReview?.Comment</textarea>
+                <button class="btn btn-primary btn-sm">Gửi đánh giá</button>
+            </form>
+        }
+        else if (User.Identity?.IsAuthenticated != true)
+        {
+            <p class="small text-muted"><a asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Url.Action("Details", new { id = b.Id })">Đăng nhập</a> và mua sách để viết đánh giá.</p>
+        }
+        else
+        {
+            <p class="small text-muted">Bạn có thể đánh giá sau khi mua và nhận hàng thành công.</p>
+        }
+
+        @if (b.Reviews.Count == 0)
+        {
+            <p class="text-muted mb-0">Chưa có đánh giá nào cho cuốn sách này.</p>
+        }
+        @foreach (var r in b.Reviews)
+        {
+            <div class="review-item">
+                <div class="d-flex justify-content-between">
+                    <strong>@r.UserName</strong>
+                    <span class="small text-muted">@r.CreatedAt.ToString("dd/MM/yyyy")</span>
+                </div>
+                <div class="text-warning small">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        <i class="bi @(i <= r.Rating ? "bi-star-fill" : "bi-star")"></i>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(r.Comment))
+                {
+                    <p class="mb-0 mt-1">@r.Comment</p>
+                }
+            </div>
+        }
+    </div>
+
+    @if (b.RelatedBooks.Count > 0)
+    {
+        <section class="mt-5">
+            <h2 class="section-title">Cùng thể loại</h2>
+            <div class="row g-3">
+                @foreach (var rb in b.RelatedBooks)
+                {
+                    <div class="col-6 col-md-3"><partial name="_BookCard" model="rb" /></div>
+                }
+            </div>
+        </section>
+    }
+</div>
